@@ -126,14 +126,64 @@ class NeedlemanWunsch:
         self._seqA = seqA
         self._seqB = seqB
         
-        # TODO: Initialize matrix private attributes for use in alignment
-        # create matrices for alignment scores, gaps, and backtracing
-        pass
+        # Get sequence lengths; sequences are seq, header
+        seqA_len = len(seqA)
+        seqB_len = len(seqB)
 
+        # Initialize matrix private attributes for use in alignment
+        # create matrices for alignment scores, gaps, and backtracing
+        self._align_matrix = np.full((seqA_len + 1, seqB_len + 1), -np.inf)
+        self._gapA_matrix = np.full((seqA_len + 1, seqB_len + 1), -np.inf)
+        self._gapB_matrix = np.full((seqA_len + 1, seqB_len + 1), -np.inf)
+        self._back = np.full((seqA_len + 1, seqB_len + 1), -np.inf)
         
-        # TODO: Implement global alignment here
-        pass      		
-        		    
+        # Set values of alignment and gap matrices
+        self._align_matrix[0][0] = 0
+        for i in range(0, seqA_len + 1):
+            self._gapA_matrix[i][0] = self.gap_open + (self.gap_extend * i)
+        for j in range(0, seqB_len + 1):
+            self._gapB_matrix[0][j] = self.gap_open + (self.gap_extend * j)
+
+   		
+        # Loop through and calculate scores
+        for i in range(1, seqA_len + 1):
+            for j in range(1, seqB_len + 1):
+                baseA = seqA[i-1]
+                baseB = seqB[j-1]
+                m_score = self.sub_dict[(baseA, baseB)]
+
+                # Fill _align_matrix
+                _m = self._align_matrix[i-1][j-1]
+                _mIx = self._gapA_matrix[i-1][j-1] 
+                _mIy = self._gapB_matrix[i-1][j-1]
+                self._align_matrix[i][j] = m_score + max(_m, _mIx, _mIy)
+
+                # gap a matrix
+                _gapAm = self._align_matrix[i][j-1] + self.gap_open + self.gap_extend
+                _gapAIx = self._gapA_matrix[i][j-1] + self.gap_extend
+                _gapAIy = self._gapB_matrix[i][j-1] + self.gap_open + self.gap_extend 
+                self._gapA_matrix[i][j] = max(_gapAm, _gapAIx, _gapAIy)
+
+                # gap b matrix
+                _gapBm = self._align_matrix[i-1][j] + self.gap_open + self.gap_extend
+                _gapBIx = self._gapA_matrix[i-1][j] + self.gap_open + self.gap_extend
+                _gapBIy = self._gapB_matrix[i-1][j] + self.gap_extend
+                self._gapB_matrix[i][j] = max(_gapBm, _gapBIy, _gapBIx)
+
+                # Find the best score
+                best_score = max(self._align_matrix[i][j], self._gapA_matrix[i][j], self._gapB_matrix[i][j])
+                
+                # Annotate source of best score for traceback
+                # if best_score from align_matrix, annotate as 0
+                # if best_score from _gapA_matrix, annotate as 1
+                # if best_score from _gapB_matrix, annotate as 2
+                if best_score == self._align_matrix[i][j]:
+                    self._back[i][j] = 0
+                elif best_score == self._gapA_matrix[i][j]:
+                   self. _back[i][j] = 1
+                else:
+                   self._back[i][j] = 2
+
         return self._backtrace()
 
     def _backtrace(self) -> Tuple[float, str, str]:
@@ -150,7 +200,28 @@ class NeedlemanWunsch:
          	(alignment score, seqA alignment, seqB alignment) : Tuple[float, str, str]
          		the score and corresponding strings for the alignment of seqA and seqB
         """
-        pass
+        seqA = self._seqA
+        seqB = self._seqB
+        # Get the length of seqA and seqB to start at the end of the matrix
+        i = len(seqA)
+        j = len(seqB)
+        
+        self.alignment_score = self._align_matrix[i][j]
+        while i != 0 or j != 0:
+            back_step = self._back[i][j]
+            if back_step == 0:
+                self.seqA_align = seqA[i-1] + self.seqA_align
+                self.seqB_align = seqB[j-1] + self.seqB_align
+                i -= 1
+                j -= 1
+            elif back_step == 1:
+                self.seqA_align = "-" + self.seqA_align
+                self.seqB_align = seqB[j-1] + self.seqB_align
+                j -= 1
+            else:
+                self.seqA_align = seqA[i-1] + self.seqA_align
+                self.seqB_align = "-" + self.seqB_align
+                i -= 1
 
         return (self.alignment_score, self.seqA_align, self.seqB_align)
 
