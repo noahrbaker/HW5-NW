@@ -10,7 +10,7 @@ pythonpath = [
 ]
 
 [project]
-name = "mst"
+name = "align"
 authors = [{name = "Noah Baker, ChatGPT", email = "noah.baker@ucsf.edu"}]
 readme = "README.md"
 license = {file = "LICENSE"}

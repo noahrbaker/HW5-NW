@@ -23,12 +23,12 @@ def main():
         if species != "HS":
             scores[species] = NW.align(sequences["HS"], seq)[0]
 
-    sorted_scores = OrderedDict(sorted(scores.items(), key=lambda x: x[1], reverse=True))
+    # Sort the scores dictionary by value in descending order
+    sorted_scores = dict(sorted(scores.items(), key=lambda x: x[1], reverse=True))
 
     print("Alignment scores of species to human BRD2:")
     for species, score in sorted_scores.items():
         print(f"{species}: {score}")
-    
 
 if __name__ == "__main__":
     main()
